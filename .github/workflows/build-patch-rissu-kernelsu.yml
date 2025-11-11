@@ -1,4 +1,4 @@
-name: Build Smart9HD GKI Kernel with KernelSU
+name: Build GKI Kernel with KernelSU
 on:
   workflow_dispatch:
 
