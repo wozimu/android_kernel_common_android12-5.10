@@ -18,7 +18,7 @@ jobs:
               ccache clang llvm lld make unzip python3 python-is-python3 zip zstd
 
       - name: Download latest GKI source artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: GKI-android12-5.10-lts
           path: gki-source
@@ -81,7 +81,7 @@ jobs:
           zip -r9 $ZIPNAME . -x .git\*
 
       - name: Upload AnyKernel3 flashable zip
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: Smart9HD-KernelSU
+          name: Wozimu-RKSU
           path: gki/AnyKernel3/${{ env.ZIPNAME }}
