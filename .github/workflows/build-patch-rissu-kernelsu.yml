@@ -20,7 +20,7 @@ jobs:
       - name: Download latest GKI source artifact
         uses: actions/download-artifact@v4
         with:
-          name: GKI-android12-5.10-lts
+          name: GKI-common-android12-5.10-lts
           path: gki-source
 
       - name: Extract GKI source
@@ -39,7 +39,7 @@ jobs:
       - name: Rename kernel version
         run: |
           cd gki/common
-          sed -i 's/^EXTRAVERSION.*/EXTRAVERSION := -Wozimu-RKSU-v1/' Makefile || echo 'EXTRAVERSION := -Wozimu-RKSU-v1' >> Makefile
+          sed -i 's/^EXTRAVERSION.*/EXTRAVERSION := -Wozimu-RKSU/' Makefile || echo 'EXTRAVERSION := -Wozimu-RKSU' >> Makefile
 
       - name: Build kernel (ARM32)
         run: |
@@ -75,7 +75,7 @@ jobs:
 
           DATE=$(date +%Y%m%d)
           RUNID=$(printf "%03d" ${{ github.run_number }})
-          ZIPNAME="Smart9HD-KernelSU-5.10-${DATE}-r${RUNID}.zip"
+          ZIPNAME="Wozimu-KernelSU-5.10-${DATE}-r${RUNID}.zip"
           echo "ZIPNAME=$ZIPNAME" >> $GITHUB_ENV
 
           zip -r9 $ZIPNAME . -x .git\*
