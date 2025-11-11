@@ -51,7 +51,7 @@ jobs:
 
       - name: Upload synced GKI source
         if: env.sync_needed == 'true'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: GKI-android12-5.10-lts
           path: gki-source.tar.zst
