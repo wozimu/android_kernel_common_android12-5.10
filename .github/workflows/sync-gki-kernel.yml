@@ -44,7 +44,7 @@ jobs:
         if: env.sync_needed == 'true'
         run: |
           repo init -u https://android.googlesource.com/kernel/manifest -b common-android12-5.10-lts
-          repo sync -c --no-clone-bundle --no-tags -j$(nproc) --depth=1
+          repo sync -c --no-clone-bundle --no-tags -j$(nproc)
           cd ..
           tar -I 'zstd -19' -cf gki-source.tar.zst gki
 
