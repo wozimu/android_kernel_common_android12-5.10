@@ -17,7 +17,7 @@ jobs:
         id: check-upstream
         run: |
           # Ambil SHA commit terakhir dari manifest branch Google
-          LATEST=$(git ls-remote https://android.googlesource.com/kernel/manifest refs/heads/android12-5.10-lts | awk '{print $1}')
+          LATEST=$(git ls-remote https://android.googlesource.com/kernel/manifest refs/heads/common-android12-5.10-lts | awk '{print $1}')
           echo "LATEST_COMMIT=$LATEST" >> $GITHUB_ENV
           echo "Latest commit upstream: $LATEST"
 
@@ -43,8 +43,7 @@ jobs:
       - name: Repo sync GKI kernel (android12-5.10-lts)
         if: env.sync_needed == 'true'
         run: |
-          mkdir gki && cd gki
-          repo init -u https://android.googlesource.com/kernel/manifest -b android12-5.10-lts
+          repo init -u https://android.googlesource.com/kernel/manifest -b common-android12-5.10-lts
           repo sync -c --no-clone-bundle --no-tags -j$(nproc) --depth=1
           cd ..
           tar -I 'zstd -19' -cf gki-source.tar.zst gki
@@ -53,7 +52,7 @@ jobs:
         if: env.sync_needed == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: GKI-android12-5.10-lts
+          name: GKI-common-android12-5.10-lts
           path: gki-source.tar.zst
 
       - name: Save latest commit metadata
