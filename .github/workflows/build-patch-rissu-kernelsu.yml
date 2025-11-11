@@ -1,0 +1,87 @@
+name: Build Smart9HD GKI Kernel with KernelSU
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout your repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git curl wget bc bison flex libssl-dev build-essential \
+              ccache clang llvm lld make unzip python3 python-is-python3 zip zstd
+
+      - name: Download latest GKI source artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: GKI-android12-5.10-lts
+          path: gki-source
+
+      - name: Extract GKI source
+        run: |
+          cd gki-source
+          tar -I zstd -xf gki-source.tar.zst
+          mv gki ../gki
+
+      - name: Apply KernelSU patch
+        run: |
+          cd gki
+          git clone https://github.com/rsuntk/KernelSU.git
+          cd KernelSU
+          ./patch.sh ../common
+
+      - name: Rename kernel version
+        run: |
+          cd gki/common
+          sed -i 's/^EXTRAVERSION.*/EXTRAVERSION := -Wozimu-RKSU-v1/' Makefile || echo 'EXTRAVERSION := -Wozimu-RKSU-v1' >> Makefile
+
+      - name: Build kernel (ARM32)
+        run: |
+          cd gki/common
+          export PATH=$HOME/clang/bin:$PATH
+          export ARCH=arm
+          export SUBARCH=arm
+          export CC=clang
+          export CROSS_COMPILE=arm-linux-gnueabi-
+          export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
+          make O=out gki_defconfig
+          make O=out -j$(nproc)
+          echo "Build done!"
+          file out/arch/arm/boot/Image.gz-dtb
+
+      - name: Prepare AnyKernel3 flashable zip
+        run: |
+          cd gki
+          git clone https://github.com/osm0sis/AnyKernel3.git
+          cd AnyKernel3
+          rm -rf *dtb *img zImage Image Image.gz-dtb
+          cp ../common/out/arch/arm/boot/Image.gz-dtb ./
+          mkdir -p modules
+          find ../common/out/ -name '*.ko' -exec cp {} ./modules/ \;
+
+          # Tambahkan modul KernelSU jika ada
+          if [ -f ../common/drivers/kernelsu/kernel_su.ko ]; then
+            cp ../common/drivers/kernelsu/kernel_su.ko ./modules/
+          fi
+
+          # Tambahkan info nama kernel di anykernel.sh
+          sed -i 's/^kernel.string=.*/kernel.string=Build by Wozimu, Powered by Rissu KernelSU on android12-5.10-LTS Branch/' anykernel.sh || echo 'kernel.string=Build by Wozimu, Powered by Rissu KernelSU on android12-5.10-LTS Branch' >> anykernel.sh
+
+          DATE=$(date +%Y%m%d)
+          RUNID=$(printf "%03d" ${{ github.run_number }})
+          ZIPNAME="Smart9HD-KernelSU-5.10-${DATE}-r${RUNID}.zip"
+          echo "ZIPNAME=$ZIPNAME" >> $GITHUB_ENV
+
+          zip -r9 $ZIPNAME . -x .git\*
+
+      - name: Upload AnyKernel3 flashable zip
+        uses: actions/upload-artifact@v3
+        with:
+          name: Smart9HD-KernelSU
+          path: gki/AnyKernel3/${{ env.ZIPNAME }}
