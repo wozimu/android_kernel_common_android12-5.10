@@ -1,15 +1,10 @@
-name: Auto Sync GKI Kernel (common-android12-5.10-lts)
-
-on:
-  workflow_dispatch:
-  schedule:
-    - cron: "0 7 * * *"  # jalan otomatis setiap hari jam 14:00 WIB (07:00 UTC)
-
 jobs:
   sync:
     runs-on: ubuntu-22.04
-
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -18,39 +13,31 @@ jobs:
       - name: Check latest upstream commit
         id: check-upstream
         run: |
-          # Ambil SHA commit terakhir dari branch manifest Google
           LATEST=$(git ls-remote https://android.googlesource.com/kernel/manifest refs/heads/common-android12-5.10-lts | awk '{print $1}')
           echo "LATEST_COMMIT=$LATEST" >> $GITHUB_ENV
-          echo "Latest upstream commit: $LATEST"
-
-          # Cek metadata commit terakhir yang tersimpan di repo
+          echo "Latest commit upstream: $LATEST"
           mkdir -p meta
           curl -s -L -o meta/last_commit.txt https://raw.githubusercontent.com/${{ github.repository }}/main/meta/last_commit.txt || true
-
           if [ -f meta/last_commit.txt ]; then
             LOCAL=$(cat meta/last_commit.txt)
           else
             LOCAL="none"
           fi
-
           echo "LOCAL_COMMIT=$LOCAL" >> $GITHUB_ENV
-
           if [ "$LATEST" = "$LOCAL" ]; then
-            echo "No update found."
             echo "sync_needed=false" >> $GITHUB_ENV
           else
-            echo "New upstream commit detected."
             echo "sync_needed=true" >> $GITHUB_ENV
           fi
 
       - name: Repo sync GKI kernel (android12-5.10-lts)
         if: env.sync_needed == 'true'
         run: |
+          mkdir gki && cd gki
           repo init -u https://android.googlesource.com/kernel/manifest -b common-android12-5.10-lts
-          repo sync -c --no-clone-bundle --no-tags -j$(nproc)
-
-          # Arsipkan semua hasil sync ke file terkompresi (tanpa file GitHub)
-          tar -I 'zstd -19' -cf gki-source.tar.zst --exclude=.gitignore --exclude=.github *
+          repo sync -c --no-clone-bundle --no-tags --force-sync -j$(nproc)
+          cd ..
+          tar -I 'zstd -19' -cf gki-source.tar.zst gki
 
       - name: Upload synced GKI source
         if: env.sync_needed == 'true'
@@ -70,7 +57,6 @@ jobs:
         run: |
           git config --global user.email "actions@github.com"
           git config --global user.name "GitHub Actions"
-          git pull
-          git add meta/last_commit.txt || true
+          git add meta/last_commit.txt
           git commit -m "Update GKI sync metadata to $LATEST_COMMIT" || true
           git push
