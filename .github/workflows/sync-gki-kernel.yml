@@ -1,4 +1,4 @@
-name: Auto Sync GKI Kernel (common-android12-5.10-lts)
+name: Sync GKI Kernel Source (Android12-5.10)
 
 on:
   workflow_dispatch:
